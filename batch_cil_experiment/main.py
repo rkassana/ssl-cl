@@ -2,7 +2,7 @@ import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 sys.path.append(os.getcwd())
 from utility.learning_utils import *
-from data_loader.loader import create_tasks, get_dataset_name, get_current_date
+from data_loader.loader import create_tasks, get_dataset_name, get_current_date, DataSetName
 from batch_cil_experiment.cil import perform_cil_tasks, get_models
 import argparse
 import torch
@@ -10,9 +10,9 @@ import torch
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='cil tasks')
-    parser.add_argument('--dataset_name', type=str, help='the dataset name')
-    parser.add_argument('--cil_step', type=str, help='number of classes for the each incremental learning')
-    parser.add_argument('--cil_start', type=str, help='the list classes for learning in the first task')
+    parser.add_argument('--dataset_name', type=str, help='the dataset name', default='cifar10')
+    parser.add_argument('--cil_step', type=str, help='number of classes for the each incremental learning', default='2')
+    parser.add_argument('--cil_start', type=str, help='the list classes for learning in the first task', default='2')
     parser.add_argument('--lr', type=str, default='0.0001', required=False, help='number of classes for the each incremental learning')
     parser.add_argument('--epochs', type=str, default='20', required=False, help='number of classes for the each incremental learning')
     parser.add_argument('--report_step', type=str, default='100', required=False, help='number of classes for the each incremental learning')
