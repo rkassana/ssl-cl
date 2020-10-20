@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     args.reset_model = False if args.reset_model == 'False' else True
 
-    dataset_name = get_dataset_name(args.dataset_name)
+    dataset_name = DataSetName.CIFAR10
     cil_start = list(range(int(args.cil_start)))
     cil_step = int(args.cil_step)
     lr = float(args.lr)
