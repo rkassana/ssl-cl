@@ -5,7 +5,7 @@ import models.simple_model
 from data_loader.loader import get_dataloaders
 from utility.util import DataSetName
 from utility.learning_utils import *
-# from brain.GLS import gls_train
+from byol_pytorch import BYOL
 
 
 def freeze_convs(soft_model, sig_model):
@@ -120,7 +120,73 @@ def perform_cil_tasks(tasks, model, dataset_name, epochs=2, lr=0.0001, report_st
     np.save(test_stat_path, test_stat)
 
 
+def perform_ssl_cil_tasks(tasks, model, dataset_name, epochs=2, lr=0.0001, report_step=20, ssl_dict = {}):
+    pre_testset, pre_valset = None, None
+    is_first_task = True
+    test_stat, validation_stat, running_losses = list(), list(), list()
+    classes_avg = dict()
 
+
+    for i, task in enumerate(tasks):
+        print(f"{Color.RED.value}task: {task}{Color.END.value}")
+
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        if device == 'cuda':
+            num_workers = 0
+        else:
+            num_workers = 0
+
+        trainloader, validationloader, testloader, pre_testset, pre_valset = get_dataloaders(dataset_name=dataset_name,
+                                                                                       pre_testset=pre_testset,
+                                                                                       pre_valset=pre_valset,
+                                                                                       task_lbls=task, num_workers=num_workers)
+
+
+
+        test_stat, validation_stat, running_losses, model = train_ssl(model, trainloader, validationloader,
+                                                                      testloader,(i,task), test_stat, validation_stat,
+                                                                      running_losses, epochs=epochs, lr=lr,
+                                                                      report_step=report_step, ssl_dict = ssl_dict)
+
+
+        preds, y_true, (acc, f1, p) = predict(model, testloader, (i,task))
+        print(f'acc:{acc:.4f}, f1:{f1:.4f}, p:{p:.4f}')
+        # plot_confusion_matrix(y_true, preds, classes=task, task=task)
+
+        # plt.plot(range(1, len(running_losses) + 1), running_losses, alpha=.6)
+        # plt.xlabel("steps")
+        # plt.ylabel("loss")
+        # plt.title("Running Loss")
+        # plt.show()
+
+    plt.plot(range(1, len(validation_stat) + 1), validation_stat, alpha=.6)
+    plt.xlabel("steps")
+    plt.ylabel("accuracy")
+    plt.title("Validation Accuracy")
+    plt.show()
+
+    plt.plot(range(1, len(running_losses) + 1), running_losses, alpha=.6)
+    plt.xlabel("epochs")
+    plt.ylabel("accuracy")
+    plt.title("Test Accuracy")
+    plt.show()
+
+
+
+    running_losses = np.array(running_losses)
+    validation_stat = np.array(validation_stat)
+    test_stat = np.array(test_stat)
+
+    path = os.path.join(f'../results/batch_cil/{dataset_name}')
+    pathlib.Path(path).mkdir(parents=True, exist_ok=True)
+
+    running_losses_path = os.path.join(path, 'running_losses')
+    np.save(running_losses_path, running_losses)
+
+    validation_stat_path = os.path.join(path, 'validation_stat')
+    test_stat_path = os.path.join(path, 'test_stat')
+    np.save(validation_stat_path, validation_stat)
+    np.save(test_stat_path, test_stat)
 
 
 

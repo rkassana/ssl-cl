@@ -10,12 +10,17 @@ from sklearn.metrics import accuracy_score
 from sklearn.metrics import precision_score
 from sklearn.metrics import confusion_matrix
 from utility.util import Color
+from byol_pytorch import BYOL
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-def test(net, testloader):
-    net.eval()
+def test(net, testloader, task):
+    task_id, labels = task
+    encoder, multi_head = net
+    encoder.eval()
+    multi_head.eval()
+
     correct = 0
     total = 0
     with torch.no_grad():
@@ -25,7 +30,12 @@ def test(net, testloader):
             images = images.to(device)
             targets = targets.to(device)
 
-            outputs = net(images)
+            for i, org_target in enumerate(labels):
+                targets[targets==org_target] = i
+
+            h_x = encoder(images)
+            outputs_per_task = multi_head(h_x)
+            outputs = outputs_per_task[task_id]
             _, predicted = torch.max(outputs.data, 1)
             total += targets.size(0)
             correct += (predicted == targets).data.cpu().sum().item()
@@ -61,8 +71,11 @@ def plot_confusion_matrix(y_true, y_pred, classes, title='Confusion matrix', cma
 
     plt.show()
 
-def predict(net, testloader, labels):
-    net.eval()
+def predict(net, testloader, task):
+
+    task_id, labels = task
+
+    encoder, multi_head = net
     preds = []
     y_true = []
     with torch.no_grad():
@@ -72,8 +85,13 @@ def predict(net, testloader, labels):
             inputs = inputs.to(device)
             targets = targets.to(device)
 
+            for i, org_target in enumerate(labels):
+                targets[targets==org_target] = i
+
             y_true.extend(targets.data.cpu().tolist())
-            outputs = net(inputs)
+            h_x = encoder(inputs)
+            outputs_per_task = multi_head(h_x)
+            outputs = outputs_per_task[task_id]
             _, predicted = torch.max(outputs.data, 1)
             preds.extend(predicted.data.cpu().tolist())
 
@@ -148,6 +166,114 @@ def train(model, trainloader, val_loader, testloader, task, test_stat, validatio
 
     test_stat.append(test_acc)
     t_name = "task " + str(task)
+    print("Training of " + t_name + " is Done!")
+    return test_stat, validation_stat, running_losses, model
+
+def train_ssl(model, trainloader, val_loader, testloader, task, test_stat, validation_stat,
+          running_losses, epochs=2, lr=0.001, report_step=300, ssl_dict ={}):
+
+    task_id, task_classes = task
+
+    encoder, multi_head = model
+    encoder.train()
+    multi_head.train()
+
+    nll_loss = nn.CrossEntropyLoss()
+
+    ssl_params = []
+    for ssl in ssl_dict:
+        ssl_params += ssl_dict[ssl].parameters()
+
+
+    #parameters = [ssl_dict[ssl_method].parameters() for ssl_method in ssl_dict if ssl_method is not None]
+    optimizer = torch.optim.Adam(list(encoder.parameters()) + ssl_params + list(multi_head.parameters()))
+
+    for epoch in range(epochs):
+        print(f"Epoch: {epoch+1}")
+        running_loss = 0.0
+        correct = 0
+        total = 0
+
+        for batch_idx, (inputs, targets) in enumerate(trainloader, 0):
+            data = (inputs.float(), targets.long())
+            inputs, targets = data
+
+            inputs = inputs.to(device)
+            targets = targets.to(device)
+
+            optimizer.zero_grad()
+
+            inputs, targets = map(Variable, (inputs, targets))
+
+            #remap labels from 0, since output of network is task specific
+            for i, org_target in enumerate(task_classes):
+                targets[targets==org_target] = i
+
+            # forward supervised loss
+            h_x = encoder(inputs)
+            outputs_per_task = multi_head(h_x)
+            outputs = outputs_per_task[task_id] # select the appropriate output layer depending on the current task
+            loss = nll_loss(outputs, targets)
+
+            #forward ssl and #combine losses to supervised loss depending on args
+
+            if 'byol' in set(ssl_dict):
+                loss_byol = ssl_dict['byol'](inputs)
+                loss = loss + loss_byol
+
+            if 'xxx' in set(ssl_dict):
+                pass
+
+            if 'yyy' in set(ssl_dict):
+                pass
+
+            # backward
+            loss.backward()
+
+            optimizer.step()
+
+            if 'byol' in ssl_dict:
+                ssl_dict['byol'].update_moving_average()  # update moving average of target encoder
+
+            if 'xxx' in ssl_dict: # add any specific ssl model update needed here
+                pass
+
+            if 'yyy' in ssl_dict: # add any specific ssl model update needed here
+                pass
+
+            # validation_stat
+            _, predicted = torch.max(outputs.data, 1)
+            total += targets.size(0)
+            correct += predicted.data.cpu().eq(targets.data.cpu()).sum().float()
+
+            running_loss += loss.item()
+
+            if (batch_idx + 1) % report_step == 0:
+                print(f'[{epoch + 1:3d}, {batch_idx + 1:3d}] {Color.BLUE.value} loss: '
+                      f'{running_loss / report_step:.4f}{Color.END.value}  |'
+                      f'  {Color.BLUE.value} Acc: {100. * correct / total:.4f}{Color.END.value} ({int(correct):d}/{int(total):d})')
+
+                running_loss = 0.0
+
+        print(f"{Color.DARKCYAN.value}Accuracy on the Validation Set:{Color.END.value}")
+        val_acc = test(model, val_loader, task)
+        encoder.train()
+        multi_head.train()
+
+        print(f'{Color.BLUE.value} model: {val_acc:.4f}{Color.END.value}')
+
+        validation_stat.append(val_acc)
+
+    print("\nAccuracy on the Test Set:")
+    test_acc = test(model, testloader, task)
+
+    encoder.train()
+    multi_head.train()
+
+    print(f'{Color.BLUE.value} model: {test_acc:.4f}{Color.END.value}\n')
+
+    test_stat.append(test_acc)
+    t_name = "task " + str(task_classes)
     print("Training of " + t_name + " is Done!")
     return test_stat, validation_stat, running_losses, model
 
