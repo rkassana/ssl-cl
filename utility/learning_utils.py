@@ -11,9 +11,31 @@ from sklearn.metrics import precision_score
 from sklearn.metrics import confusion_matrix
 from utility.util import Color
 from byol_pytorch import BYOL
+import math
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+def select_loss(sup_loss, ssl_losses, ratio, epoch, threshold):
+
+    if ratio < 1.0 and ssl_losses:
+        if epoch <= threshold:
+            for k, ssl_loss in enumerate(ssl_losses):
+                if k == 0:
+                    loss = ssl_loss
+                else:
+                    loss += ssl_loss
+        else:
+            loss = sup_loss
+    elif ratio == 1.0 and ssl_losses:
+        loss = sup_loss
+        for ssl_loss in ssl_losses:
+            loss += ssl_loss
+    else:
+        loss = sup_loss
+
+    return loss
+
 
 def test(net, testloader, task):
     task_id, labels = task
@@ -170,7 +192,7 @@ def train(model, trainloader, val_loader, testloader, task, test_stat, validatio
     return test_stat, validation_stat, running_losses, model
 
 def train_ssl(model, trainloader, val_loader, testloader, task, test_stat, validation_stat,
-          running_losses, epochs=2, lr=0.001, report_step=300, ssl_dict ={}):
+          running_losses, epochs=2, lr=0.001, report_step=300, ssl_dict ={}, ratio = 1.0):
 
     task_id, task_classes = task
 
@@ -184,9 +206,11 @@ def train_ssl(model, trainloader, val_loader, testloader, task, test_stat, valid
     for ssl in ssl_dict:
         ssl_params += ssl_dict[ssl].parameters()
 
+    thresold = math.floor(ratio * epochs) - 1
+
 
     #parameters = [ssl_dict[ssl_method].parameters() for ssl_method in ssl_dict if ssl_method is not None]
-    optimizer = torch.optim.Adam(list(encoder.parameters()) + ssl_params + list(multi_head.parameters()))
+    optimizer = torch.optim.SGD(ssl_params + list(multi_head.parameters()), lr=lr, weight_decay=5e-4)
 
     for epoch in range(epochs):
         print(f"Epoch: {epoch+1}")
@@ -213,19 +237,23 @@ def train_ssl(model, trainloader, val_loader, testloader, task, test_stat, valid
             h_x = encoder(inputs)
             outputs_per_task = multi_head(h_x)
             outputs = outputs_per_task[task_id] # select the appropriate output layer depending on the current task
-            loss = nll_loss(outputs, targets)
+            sup_loss = nll_loss(outputs, targets)
 
             #forward ssl and #combine losses to supervised loss depending on args
 
+            ssl_losses = []
+
             if 'byol' in set(ssl_dict):
-                loss_byol = ssl_dict['byol'](inputs)
-                loss = loss + loss_byol
+                ssl_losses.append(ssl_dict['byol'](inputs))
 
             if 'xxx' in set(ssl_dict):
                 pass
 
             if 'yyy' in set(ssl_dict):
                 pass
+
+            # selec loss depending on the ratio and ssl methods
+            loss = select_loss(sup_loss,ssl_losses,ratio, epoch, thresold )
 
             # backward
             loss.backward()

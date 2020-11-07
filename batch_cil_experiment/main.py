@@ -9,7 +9,10 @@ import torch
 from byol_pytorch import BYOL
 from models.AlexNet_cl import AlexNet_encoder
 from models.multi_head_classifier import Multi_head
+import os, wandb
 
+NUMPY_SEED = 24
+PYTORCH_SEED = 42
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='cil tasks')
@@ -21,6 +24,7 @@ if __name__ == "__main__":
     parser.add_argument('--report_step', type=str, default='100', required=False, help='number of classes for the each incremental learning')
     parser.add_argument('--reset_model', type=str, default='True', help='reset model at each new task')
     parser.add_argument('--ssl', nargs="+", default=[], help='select with ssl to train as auxilary task, option are byol, rotnet and ae')
+    parser.add_argument('--ratio', type=str, default=1.0, help='ratio on total training time where supervised loss vs self-supervised in present')
     args = parser.parse_args()
 
     args.reset_model = False if args.reset_model == 'False' else True
@@ -32,10 +36,25 @@ if __name__ == "__main__":
     epochs = int(args.epochs)
     report_step = int(args.report_step)
     ssl_methods = set(args.ssl)
+    ratio = float(args.ratio)
+
+    torch.manual_seed(PYTORCH_SEED)
+    np.random.seed(NUMPY_SEED)
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f'{Color.GREEN.value}Device:{device} {Color.END.value}')
     d = get_current_date()
+
+    #wandb init
+    os.environ["WANDB_MODE"] = "dryrun"
+    run = wandb.init(
+        project="ssl-cl",
+        entity="ssl-cl",
+        dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."),
+    )
+    wandb.run.summary["tensorflow_seed"] = PYTORCH_SEED
+    wandb.run.summary["numpy_seed"] = NUMPY_SEED
+    wandb.config.update(args)
 
     #define the base encoder, the common model across supervised and self-supervised
     encoder = AlexNet_encoder()
@@ -55,7 +74,7 @@ if __name__ == "__main__":
             byol_model = BYOL(
                 encoder,
                 image_size=32,
-                hidden_layer = -2
+                hidden_layer = -1
             )
             ssl_models.append(byol_model)
 
@@ -74,7 +93,7 @@ if __name__ == "__main__":
     # epochs = 2, lr = 0.0001, report_step = 20
     tasks = create_tasks(dataset_name=dataset_name, cil_step=cil_step, cil_start=cil_start)
     perform_ssl_cil_tasks(tasks, (encoder, multi_head), dataset_name=dataset_name, epochs=epochs, lr=lr,
-                      report_step=report_step, ssl_dict = ssl_dict)
+                      report_step=report_step, ssl_dict = ssl_dict, ratio = ratio)
     print("Done!")
 
 ####### for ssl

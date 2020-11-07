@@ -20,12 +20,10 @@ class AlexNet_encoder(nn.Module):
         )
 
         self.maxpool2d = nn.MaxPool2d(kernel_size=2)
-        self.logsoftmax = nn.LogSoftmax(dim=1)
 
     def forward(self, x):
         x = self.features(x)
         x = self.maxpool2d(x)
-        x = self.logsoftmax(x)
         x = x.view(x.size(0), 256 * 2 * 2)
         return x
 

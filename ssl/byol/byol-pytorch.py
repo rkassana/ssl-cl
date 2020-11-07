@@ -8,8 +8,6 @@ import os, wandb
 
 
 EPOCH = 100
-NUMPY_SEED = 24
-PYTORCH_SEED = 42
 BATCH_SIZE = 512
 
 import torch.nn as nn
