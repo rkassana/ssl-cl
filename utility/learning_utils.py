@@ -129,7 +129,7 @@ def train(model, trainloader, val_loader, testloader, task, test_stat, validatio
     model.to(device)
 
     nll_loss = nn.NLLLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr, weight_decay=5e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=5e-4)
 
     for epoch in range(epochs):
         print(f"Epoch: {epoch+1}")
@@ -210,7 +210,10 @@ def train_ssl(model, trainloader, val_loader, testloader, task, test_stat, valid
 
 
     #parameters = [ssl_dict[ssl_method].parameters() for ssl_method in ssl_dict if ssl_method is not None]
-    optimizer = torch.optim.SGD(ssl_params + list(multi_head.parameters()), lr=lr, weight_decay=5e-4)
+    if ssl_params:
+        optimizer = torch.optim.Adam(ssl_params + list(multi_head.parameters()))
+    else:
+        optimizer = torch.optim.Adam(list(encoder.parameters()) + list(multi_head.parameters()))
 
     for epoch in range(epochs):
         print(f"Epoch: {epoch+1}")

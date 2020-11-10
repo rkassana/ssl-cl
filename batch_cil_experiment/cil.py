@@ -121,7 +121,7 @@ def perform_cil_tasks(tasks, model, dataset_name, epochs=2, lr=0.0001, report_st
     np.save(test_stat_path, test_stat)
 
 
-def perform_ssl_cil_tasks(tasks, model, dataset_name, epochs=2, lr=0.0001, report_step=20, ssl_dict = {}, ratio = 1.0):
+def perform_ssl_cil_tasks(tasks, model, dataset_name, epochs=2, lr=0.0001, report_step=20, ssl_dict = {}, ratio = 1.0, batch_size = 16):
     pre_testset, pre_valset = None, None
     is_first_task = True
     test_stat, validation_stat, running_losses = list(), list(), list()
@@ -146,7 +146,7 @@ def perform_ssl_cil_tasks(tasks, model, dataset_name, epochs=2, lr=0.0001, repor
         trainloader, validationloader, testloader, pre_testset, pre_valset = get_dataloaders(dataset_name=dataset_name,
                                                                                        pre_testset=pre_testset,
                                                                                        pre_valset=pre_valset,
-                                                                                       task_lbls=task, num_workers=num_workers)
+                                                                                       task_lbls=task, num_workers=num_workers, train_batch_size=batch_size)
         task_validation_loaders.append(validationloader)
         task_test_loaders.append(validationloader)
 

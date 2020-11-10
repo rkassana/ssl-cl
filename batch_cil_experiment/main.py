@@ -25,6 +25,7 @@ if __name__ == "__main__":
     parser.add_argument('--reset_model', type=str, default='True', help='reset model at each new task')
     parser.add_argument('--ssl', nargs="+", default=[], help='select with ssl to train as auxilary task, option are byol, rotnet and ae')
     parser.add_argument('--ratio', type=str, default=1.0, help='ratio on total training time where supervised loss vs self-supervised in present')
+    parser.add_argument('--batch_size', type=str, default=16, help='ratio on total training time where supervised loss vs self-supervised in present')
     args = parser.parse_args()
 
     args.reset_model = False if args.reset_model == 'False' else True
@@ -37,6 +38,7 @@ if __name__ == "__main__":
     report_step = int(args.report_step)
     ssl_methods = set(args.ssl)
     ratio = float(args.ratio)
+    batch_size = int(args.batch_size)
 
     torch.manual_seed(PYTORCH_SEED)
     np.random.seed(NUMPY_SEED)
@@ -45,12 +47,19 @@ if __name__ == "__main__":
     print(f'{Color.GREEN.value}Device:{device} {Color.END.value}')
     d = get_current_date()
 
+
+    ssl_str = ""
+    for ssl in args.ssl:
+        ssl_str += " " + str(ssl)
+    name_run = args.dataset_name + " - " + ssl_str + " - epoch:" +  args.epochs + " - ratio:" +  args.ratio
+
     #wandb init
     os.environ["WANDB_MODE"] = "dryrun"
     run = wandb.init(
         project="ssl-cl",
         entity="ssl-cl",
         dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."),
+        name = name_run
     )
     wandb.run.summary["tensorflow_seed"] = PYTORCH_SEED
     wandb.run.summary["numpy_seed"] = NUMPY_SEED
@@ -93,7 +102,7 @@ if __name__ == "__main__":
     # epochs = 2, lr = 0.0001, report_step = 20
     tasks = create_tasks(dataset_name=dataset_name, cil_step=cil_step, cil_start=cil_start)
     perform_ssl_cil_tasks(tasks, (encoder, multi_head), dataset_name=dataset_name, epochs=epochs, lr=lr,
-                      report_step=report_step, ssl_dict = ssl_dict, ratio = ratio)
+                      report_step=report_step, ssl_dict = ssl_dict, ratio = ratio, batch_size = batch_size)
     print("Done!")
 
 ####### for ssl
