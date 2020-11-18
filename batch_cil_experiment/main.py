@@ -10,6 +10,7 @@ from byol_pytorch import BYOL
 from models.AlexNet_cl import AlexNet_encoder
 from models.multi_head_classifier import Multi_head
 import os, wandb
+from pl_bolts.models.self_supervised import AMDIM
 
 NUMPY_SEED = 24
 PYTORCH_SEED = 42
@@ -51,7 +52,7 @@ if __name__ == "__main__":
     ssl_str = ""
     for ssl in args.ssl:
         ssl_str += " " + str(ssl)
-    name_run = args.dataset_name + " - " + ssl_str + " - epoch:" +  args.epochs + " - ratio:" +  args.ratio
+    name_run = args.dataset_name + " - " + ssl_str + " - epoch:" +  args.epochs + " - ratio:" +  str(args.ratio)
 
     #wandb init
     os.environ["WANDB_MODE"] = "dryrun"
@@ -87,8 +88,10 @@ if __name__ == "__main__":
             )
             ssl_models.append(byol_model)
 
-        if 'xxx' in ssl_methods:  # add extra ssl model here
-            pass
+        if 'amdim' in ssl_methods:  # add extra ssl model here
+            amdim = AMDIM(encoder=encoder)
+            ssl_models.append(amdim)
+
         if 'yyy' in ssl_methods:  # add extra ssl model here
             pass
 
@@ -96,7 +99,7 @@ if __name__ == "__main__":
             ssl_models.append(None)
 
     ssl_dict = dict(zip(ssl_methods,ssl_models))
-
+    print(ssl_dict)
 
     # tasks = [[0, 1], [2], [3]]
     # epochs = 2, lr = 0.0001, report_step = 20
