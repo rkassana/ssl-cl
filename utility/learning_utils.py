@@ -272,7 +272,7 @@ def train_ssl(model, trainloader, val_loader, testloader, task, test_stat, valid
             if 'yyy' in ssl_dict: # add any specific ssl model update needed here
                 pass
 
-            # validation_stat
+            # training accuracy
             _, predicted = torch.max(outputs.data, 1)
             total += targets.size(0)
             correct += predicted.data.cpu().eq(targets.data.cpu()).sum().float()
