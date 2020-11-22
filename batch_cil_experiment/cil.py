@@ -2,11 +2,14 @@ import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 import pathlib
 import models.simple_model
+import models.alexnet
 from data_loader.loader import get_dataloaders
 from utility.util import DataSetName
 from utility.learning_utils import *
 from byol_pytorch import BYOL
 import wandb
+import torchvision.models as predefined_models
+
 
 
 def freeze_convs(soft_model, sig_model):
@@ -44,7 +47,9 @@ def get_models(dataset_name):
     if dataset_name.name == DataSetName.CIFAR100.name:
         model = models.simple_model.ConvModel(100, in_chanel=3)
     elif dataset_name.name == DataSetName.CIFAR10.name:
-        model = models.simple_model.ConvModel(10, in_chanel=3)
+        # model = models.simple_model.ConvModel(10, in_chanel=3)
+        # model = models.alexnet.AlexNet()
+        model = predefined_models.vgg16(pretrained=True, num_classes=10)
     elif dataset_name.name == DataSetName.MNIST.name or dataset_name.name == DataSetName.FashionMNIST.name:
         model = models.simple_model.ConvModel(10, in_chanel=1)
 
