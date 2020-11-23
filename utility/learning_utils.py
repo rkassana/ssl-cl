@@ -201,6 +201,7 @@ def train_ssl(model, trainloader, val_loader, testloader, task, test_stat, valid
     multi_head.train()
 
     nll_loss = nn.CrossEntropyLoss()
+    recons_loss = nn.MSELoss()
 
     ssl_params = []
     for ssl in ssl_dict:
@@ -249,8 +250,9 @@ def train_ssl(model, trainloader, val_loader, testloader, task, test_stat, valid
             if 'byol' in set(ssl_dict):
                 ssl_losses.append(ssl_dict['byol'](inputs))
 
-            if 'xxx' in set(ssl_dict):
-                pass
+            if 'ae' in set(ssl_dict):
+                x_hat = ssl_dict['ae'](inputs)
+                ssl_losses.append(recons_loss(inputs,x_hat))
 
             if 'yyy' in set(ssl_dict):
                 pass

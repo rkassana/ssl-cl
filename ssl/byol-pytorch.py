@@ -112,7 +112,7 @@ if __name__ == "__main__":
     run = wandb.init(
         project="ssl-cl",
         entity="ssl-cl",
-        dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."),
+        dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "", ".."),
     )
     wandb.run.summary["tensorflow_seed"] = PYTORCH_SEED
     wandb.run.summary["numpy_seed"] = NUMPY_SEED
