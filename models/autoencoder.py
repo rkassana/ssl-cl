@@ -32,7 +32,7 @@ class AE(nn.Module):
         self.unmaxpool3 = nn.MaxUnpool2d(kernel_size=2)
 
         self.decoder3 = nn.Sequential(
-            nn.ConvTranspose2d(64, 3, kernel_size=3, stride=2, padding=1),
+            nn.ConvTranspose2d(64, 3, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.ReLU(inplace=True))
 
     def forward(self, x):

@@ -78,6 +78,8 @@ if __name__ == "__main__":
     # add list of ssl models to pass for training
     ssl_models = []
 
+    ssl_dict = {}
+
     for method in ssl_methods:
 
         if 'byol' in ssl_methods:
@@ -87,19 +89,16 @@ if __name__ == "__main__":
                 hidden_layer = -1
             )
             byol_model.to(device)
-            ssl_models.append(byol_model)
+            ssl_dict['byol'] = byol_model
+
 
         if 'xxx' in ssl_methods:  # add extra ssl model here
             pass
         if 'ae' in ssl_methods:  # add extra ssl model here
             ae = AE(encoder=encoder)
             ae.to(device)
-            ssl_models.append(ae)
+            ssl_dict['ae'] = ae
 
-        else :
-            ssl_models.append(None)
-
-    ssl_dict = dict(zip(ssl_methods,ssl_models))
 
 
     # tasks = [[0, 1], [2], [3]]

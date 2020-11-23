@@ -22,6 +22,7 @@ class Multi_head(nn.Module):
         self.out5 = nn.Linear(4096, num_classes_per_task)
 
     def forward(self, x):
+
         x  =self.projection(x)
         x1 = self.out1(x)
         x2 = self.out2(x)
