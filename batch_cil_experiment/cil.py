@@ -148,9 +148,9 @@ def perform_ssl_cil_tasks(tasks, model, dataset_name, epochs=2, lr=0.0001, repor
         else:
             num_workers = 0
 
-        trainloader, validationloader, testloader, pre_testset, pre_valset = get_dataloaders(dataset_name=dataset_name,
-                                                                                       pre_testset=pre_testset,
-                                                                                       pre_valset=pre_valset,
+        trainloader, validationloader, testloader, _, _ = get_dataloaders(dataset_name=dataset_name,
+                                                                                       pre_testset=None,
+                                                                                       pre_valset=None,
                                                                                        task_lbls=task, num_workers=num_workers, train_batch_size=batch_size)
         task_validation_loaders.append(validationloader)
         task_test_loaders.append(validationloader)
@@ -165,7 +165,7 @@ def perform_ssl_cil_tasks(tasks, model, dataset_name, epochs=2, lr=0.0001, repor
         accs = []
         for task_id, task_loader in enumerate(task_validation_loaders):
 
-            preds, y_true, (acc, f1, p) = predict(model, testloader, (task_id,tasks_classes_seen[task_id]))
+            preds, y_true, (acc, f1, p) = predict(model, task_loader, (task_id,tasks_classes_seen[task_id]))
             print('Task {d} val acc : {acc}'.format(d=task_id+1, acc = acc))
             accs.append(acc)
             # plot_confusion_matrix(y_true, preds, classes=task, task=task)
