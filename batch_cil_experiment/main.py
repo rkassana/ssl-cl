@@ -86,7 +86,7 @@ if __name__ == "__main__":
             byol_model = BYOL(
                 encoder,
                 image_size=32,
-                hidden_layer = -1
+                hidden_layer= -1
             )
             byol_model.to(device)
             ssl_dict['byol'] = byol_model
