@@ -21,14 +21,24 @@ class Multi_head(nn.Module):
         self.out4 = nn.Linear(4096, num_classes_per_task)
         self.out5 = nn.Linear(4096, num_classes_per_task)
 
-    def forward(self, x):
+    def forward(self, x, task_id=0):
 
         x  =self.projection(x)
-        x1 = self.out1(x)
-        x2 = self.out2(x)
-        x3 = self.out3(x)
-        x4 = self.out4(x)
-        x5 = self.out5(x)
 
-        return x1, x2, x3, x4, x5
+        if task_id == 0:
+            x1 = self.out1(x)
+            return x1
+        elif task_id == 1:
+            x2 = self.out2(x)
+            return x2
+        elif task_id == 2:
+            x3 = self.out3(x)
+            return x3
+        elif task_id == 3:
+            x4 = self.out4(x)
+            return x4
+        elif task_id == 4:
+            x5 = self.out5(x)
+            return x5
+
 
