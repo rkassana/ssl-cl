@@ -10,6 +10,7 @@ from byol_pytorch import BYOL
 from models.AlexNet_cl import AlexNet_encoder
 from models.multi_head_classifier import Multi_head
 import os, wandb
+from models.autoencoder import AE
 
 NUMPY_SEED = 24
 PYTORCH_SEED = 42
@@ -51,7 +52,7 @@ if __name__ == "__main__":
     ssl_str = ""
     for ssl in args.ssl:
         ssl_str += " " + str(ssl)
-    name_run = args.dataset_name + " - " + ssl_str + " - epoch:" +  args.epochs + " - ratio:" +  args.ratio
+    name_run = args.dataset_name + " - " + ssl_str + " - epoch:" +  args.epochs + " - ratio:" +  str(args.ratio)
 
     #wandb init
     os.environ["WANDB_MODE"] = "dryrun"
@@ -77,25 +78,27 @@ if __name__ == "__main__":
     # add list of ssl models to pass for training
     ssl_models = []
 
+    ssl_dict = {}
+
     for method in ssl_methods:
 
         if 'byol' in ssl_methods:
             byol_model = BYOL(
                 encoder,
                 image_size=32,
-                hidden_layer = -1
+                hidden_layer= -1
             )
-            ssl_models.append(byol_model)
+            byol_model.to(device)
+            ssl_dict['byol'] = byol_model
+
 
         if 'xxx' in ssl_methods:  # add extra ssl model here
             pass
-        if 'yyy' in ssl_methods:  # add extra ssl model here
-            pass
+        if 'ae' in ssl_methods:  # add extra ssl model here
+            ae = AE(encoder=encoder)
+            ae.to(device)
+            ssl_dict['ae'] = ae
 
-        else :
-            ssl_models.append(None)
-
-    ssl_dict = dict(zip(ssl_methods,ssl_models))
 
 
     # tasks = [[0, 1], [2], [3]]

@@ -94,17 +94,16 @@ def get_dataloaders(dataset_name, task_lbls, pre_testset=None, pre_valset=None, 
                     test_batch_size=500,
                     val_batch_size=500, random_seed=32, num_workers=0):
 
-    # if dataset_name == DataSetName.CIFAR10:
-    #     mean = [x / 255 for x in [125.3, 123.0, 113.9]]
-    #     std = [x / 255 for x in [63.0, 62.1, 66.7]]
-    # elif dataset_name == DataSetName.CIFAR100:
-    #     mean = [x / 255 for x in [129.3, 124.1, 112.4]]
-    #     std = [x / 255 for x in [68.2, 65.4, 70.4]]
-    # elif dataset_name == DataSetName.MNIST:
-    #     mean, std = (0.1307,), (0.3081,)
+    if dataset_name == DataSetName.CIFAR10:
+        transform = transforms.Compose(
+            [transforms.ToTensor(), transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+    elif dataset_name == DataSetName.CIFAR100:
+        transform = transforms.Compose(
+            [transforms.ToTensor()])
+    elif dataset_name == DataSetName.MNIST:
+        transform = transforms.Compose(
+            [transforms.ToTensor()])
 
-    # transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean, std)])
-    transform = transforms.Compose([transforms.ToTensor()])
     if dataset_name == DataSetName.CIFAR10:
         trainset = torchvision.datasets.CIFAR10(root='../data/', train=True, download=True, transform=transform)
         testset = torchvision.datasets.CIFAR10(root='../data/', train=False, download=True, transform=transform)

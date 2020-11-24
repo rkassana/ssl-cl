@@ -56,8 +56,7 @@ def test(net, testloader, task):
                 targets[targets==org_target] = i
 
             h_x = encoder(images)
-            outputs_per_task = multi_head(h_x)
-            outputs = outputs_per_task[task_id]
+            outputs = multi_head(h_x,task_id)
             _, predicted = torch.max(outputs.data, 1)
             total += targets.size(0)
             correct += (predicted == targets).data.cpu().sum().item()
@@ -112,8 +111,7 @@ def predict(net, testloader, task):
 
             y_true.extend(targets.data.cpu().tolist())
             h_x = encoder(inputs)
-            outputs_per_task = multi_head(h_x)
-            outputs = outputs_per_task[task_id]
+            outputs = multi_head(h_x,task_id)
             _, predicted = torch.max(outputs.data, 1)
             preds.extend(predicted.data.cpu().tolist())
 
@@ -201,6 +199,7 @@ def train_ssl(model, trainloader, val_loader, testloader, task, test_stat, valid
     multi_head.train()
 
     nll_loss = nn.CrossEntropyLoss()
+    recons_loss = nn.MSELoss()
 
     ssl_params = []
     for ssl in ssl_dict:
@@ -211,9 +210,9 @@ def train_ssl(model, trainloader, val_loader, testloader, task, test_stat, valid
 
     #parameters = [ssl_dict[ssl_method].parameters() for ssl_method in ssl_dict if ssl_method is not None]
     if ssl_params:
-        optimizer = torch.optim.Adam(ssl_params + list(multi_head.parameters()))
+        optimizer = torch.optim.Adam(set(ssl_params).union(set(multi_head.parameters())))
     else:
-        optimizer = torch.optim.Adam(list(encoder.parameters()) + list(multi_head.parameters()))
+        optimizer = torch.optim.Adam(set(encoder.parameters()).union(set(multi_head.parameters())))
 
     for epoch in range(epochs):
         print(f"Epoch: {epoch+1}")
@@ -238,8 +237,7 @@ def train_ssl(model, trainloader, val_loader, testloader, task, test_stat, valid
 
             # forward supervised loss
             h_x = encoder(inputs)
-            outputs_per_task = multi_head(h_x)
-            outputs = outputs_per_task[task_id] # select the appropriate output layer depending on the current task
+            outputs = multi_head(h_x,task_id)
             sup_loss = nll_loss(outputs, targets)
 
             #forward ssl and #combine losses to supervised loss depending on args
@@ -249,8 +247,9 @@ def train_ssl(model, trainloader, val_loader, testloader, task, test_stat, valid
             if 'byol' in set(ssl_dict):
                 ssl_losses.append(ssl_dict['byol'](inputs))
 
-            if 'xxx' in set(ssl_dict):
-                pass
+            if 'ae' in set(ssl_dict):
+                x_hat = ssl_dict['ae'](inputs)
+                ssl_losses.append(recons_loss(inputs,x_hat))
 
             if 'yyy' in set(ssl_dict):
                 pass
