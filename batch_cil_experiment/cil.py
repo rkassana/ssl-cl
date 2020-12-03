@@ -136,7 +136,7 @@ def perform_ssl_cil_tasks(tasks, model, dataset_name, epochs=2, lr=0.0001, repor
     task_test_loaders = []
     tasks_classes_seen = []
     task_cum_accs = []
-
+    reply_buffer = None
     for i, task in enumerate(tasks):
         print(f"{Color.RED.value}task: {task}{Color.END.value}")
 
@@ -148,7 +148,8 @@ def perform_ssl_cil_tasks(tasks, model, dataset_name, epochs=2, lr=0.0001, repor
         else:
             num_workers = 0
 
-        trainloader, validationloader, testloader, _, _ = get_dataloaders(dataset_name=dataset_name,
+        trainloader, validationloader, testloader, _, _, reply_buffer = get_dataloaders(dataset_name=dataset_name,
+                                                                                         reply_buffer=reply_buffer,
                                                                                        pre_testset=None,
                                                                                        pre_valset=None,
                                                                                        task_lbls=task, num_workers=num_workers, train_batch_size=batch_size)

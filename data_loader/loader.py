@@ -20,6 +20,11 @@ class GenHelper(Dataset):
     def __len__(self):
         return self.length
 
+class Reply_buffer():
+    def __init__(self):
+        self.x = torch.Tensor()
+        self.y = torch.Tensor()
+        self.labels = list()
 
 def train_valid_split(ds, split_fold=10, random_seed=None):
     if random_seed is not None:
@@ -33,7 +38,6 @@ def train_valid_split(ds, split_fold=10, random_seed=None):
     valid_mapping = indices[:valid_size]
     train = GenHelper(ds, dslen - valid_size, train_mapping)
     valid = GenHelper(ds, valid_size, valid_mapping)
-
     return train, valid
 
 
@@ -58,13 +62,51 @@ def create_dataset(org_labels, task_lbls, base_set, is_train):
     my_dataset.train = is_train
     return my_dataset
 
+def create_dataset_by_buffer(org_labels, task_lbls, base_set, is_train, reply_buffer):
+    indices = []
+    for index, elem in enumerate(base_set.targets):
+        if elem in task_lbls:
+            indices.append(index)
+    x = base_set.data[indices]
+    if len(x.shape) == 4:
+        x = x.transpose((0, 3, 1, 2))
+    if len(x.shape) == 3:
+        x = x.unsqueeze(1)
+    # x = x.astype('float')
+    y = np.array(base_set.targets)[indices]
+    if type(x) != torch.Tensor:
+        x = torch.tensor(x)
+    tensor_y = torch.tensor(y)
+    if reply_buffer == None :
+        my_dataset = torch.utils.data.TensorDataset(x, tensor_y)
+        my_dataset.classes = [org_labels[item] for item in task_lbls]
+        my_dataset.class_to_idx = {org_labels[val]: val for val in task_lbls}
+        reply_buffer = Reply_buffer()
+
+        reply_buffer.x = x[:1000]
+        reply_buffer.y = tensor_y[:1000]
+        reply_buffer.labels = task_lbls
+
+    else:
+        my_dataset = torch.utils.data.TensorDataset(torch.cat((x, reply_buffer.x), 0), torch.cat((tensor_y, reply_buffer.y), 0))
+        task_lbls = task_lbls + reply_buffer.labels
+        my_dataset.classes = [org_labels[item] for item in task_lbls]
+        my_dataset.class_to_idx = {org_labels[val]: val for val in task_lbls}
+
+        reply_buffer.x = torch.cat((reply_buffer.x, x[:1000]), 0)
+        reply_buffer.y = torch.cat((reply_buffer.y, tensor_y[:1000]), 0)
+        reply_buffer.labels = task_lbls
+
+    my_dataset.train = is_train
+    return my_dataset, reply_buffer
+
 
 def loads(trainset, testset, pre_testset, pre_valset, task_lbls, random_seed, split_fold,
-          test_batch_size, train_batch_size, val_batch_size, num_workers=0):
+          test_batch_size, train_batch_size, val_batch_size, reply_buffer, num_workers=0):
     if not list(set(task_lbls).intersection(list(range(len(trainset.classes))))).sort() == task_lbls.sort():
         raise Exception(Color.RED.value + "The Selected Labels are Wrong" + Color.END.value)
     labels = trainset.classes
-    trainset = create_dataset(labels, task_lbls, trainset, is_train=True)
+    trainset, reply_buffer = create_dataset_by_buffer(labels, task_lbls, trainset, reply_buffer=reply_buffer, is_train=True)
     testset = create_dataset(labels, task_lbls, testset, is_train=False)
     testset.idx = list(testset.class_to_idx.values())
 
@@ -87,10 +129,10 @@ def loads(trainset, testset, pre_testset, pre_valset, task_lbls, random_seed, sp
     validationloader = torch.utils.data.DataLoader(validation_set, batch_size=val_batch_size, shuffle=True,
                                                    num_workers=num_workers)
     testloader = torch.utils.data.DataLoader(testset, batch_size=test_batch_size, shuffle=False, num_workers=num_workers)
-    return testloader, trainloader, validationloader, testset, validation_set
+    return testloader, trainloader, validationloader, testset, validation_set, reply_buffer
 
 
-def get_dataloaders(dataset_name, task_lbls, pre_testset=None, pre_valset=None, split_fold=10, train_batch_size=16,
+def get_dataloaders(dataset_name, task_lbls, reply_buffer, pre_testset=None, pre_valset=None, split_fold=10, train_batch_size=16,
                     test_batch_size=500,
                     val_batch_size=500, random_seed=32, num_workers=0):
 
@@ -117,13 +159,13 @@ def get_dataloaders(dataset_name, task_lbls, pre_testset=None, pre_valset=None, 
         trainloader = torch.utils.data.DataLoader(trainset, batch_size=train_batch_size, shuffle=True,
                                                   num_workers=num_workers)
 
-    testloader, trainloader, validationloader, testset, validation_set = loads(trainset, testset, pre_testset,
+    testloader, trainloader, validationloader, testset, validation_set, reply_buffer_ = loads(trainset, testset, pre_testset,
                                                                                pre_valset, task_lbls,
                                                                                random_seed, split_fold,
                                                                                test_batch_size,
-                                                                               train_batch_size, val_batch_size,
+                                                                               train_batch_size, val_batch_size, reply_buffer=reply_buffer,
                                                                                num_workers=num_workers)
-    return trainloader, validationloader, testloader, testset, validation_set
+    return trainloader, validationloader, testloader, testset, validation_set, reply_buffer_
 
 
 
