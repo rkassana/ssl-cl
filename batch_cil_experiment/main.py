@@ -1,4 +1,7 @@
 import os, sys
+
+from models.alexnet import AlexNet
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 sys.path.append(os.getcwd())
 from utility.learning_utils import *
@@ -92,8 +95,14 @@ if __name__ == "__main__":
             ssl_dict['byol'] = byol_model
 
 
-        if 'xxx' in ssl_methods:  # add extra ssl model here
-            pass
+        if 'rfs' in ssl_methods:  # add extra ssl model here
+            model = AlexNet(100)
+            model.load_state_dict(torch.load('../data/cifar100_byol.pth', map_location=torch.device(device)))
+            for param in model.parameters():
+                param.requires_grad = False
+            model.classifier = None
+            encoder = model
+
         if 'ae' in ssl_methods:  # add extra ssl model here
             ae = AE(encoder=encoder)
             ae.to(device)
