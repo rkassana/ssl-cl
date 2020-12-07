@@ -97,10 +97,11 @@ if __name__ == "__main__":
 
         if 'rfs' in ssl_methods:  # add extra ssl model here
             model = AlexNet(100)
-            model.load_state_dict(torch.load('../data/cifar100_byol.pth', map_location=torch.device(device)))
+            model.load_state_dict(torch.load('../data/cifar100_byol.pth'))
+            model.to(device)
             for param in model.parameters():
                 param.requires_grad = False
-            model.classifier = None
+            #model.classifier = None
             encoder = model
 
         if 'ae' in ssl_methods:  # add extra ssl model here
