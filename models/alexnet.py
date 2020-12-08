@@ -23,7 +23,7 @@ class AlexNet(nn.Module):
             nn.Conv2d(256, 256, kernel_size=3, padding=1),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2),
-            nn.LogSoftmax(dim=1)
+            # nn.LogSoftmax(dim=1)
         )
         self.classifier = nn.Sequential(
             nn.Dropout(),
@@ -38,5 +38,5 @@ class AlexNet(nn.Module):
     def forward(self, x):
         x = self.features(x)
         x = x.view(x.size(0), 256 * 2 * 2)
-        x = self.classifier(x)
+        # x = self.classifier(x)
         return x
