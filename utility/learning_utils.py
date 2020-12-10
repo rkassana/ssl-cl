@@ -16,7 +16,7 @@ import math
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-def select_loss(sup_loss, ssl_losses, ratio, epoch, threshold):
+def select_loss(sup_loss, ssl_losses, ratio, epoch, threshold, task_id):
 
     if ratio < 1.0 and ssl_losses:
         if epoch <= threshold:
@@ -29,8 +29,10 @@ def select_loss(sup_loss, ssl_losses, ratio, epoch, threshold):
             loss = sup_loss
     elif ratio == 1.0 and ssl_losses:
         loss = sup_loss
+        ssl_L = 0
         for ssl_loss in ssl_losses:
-            loss += ssl_loss
+            ssl_L += ssl_loss
+        loss = 0*sup_loss + ssl_L
     else:
         loss = sup_loss
 
@@ -255,7 +257,7 @@ def train_ssl(model, trainloader, val_loader, testloader, task, test_stat, valid
                 pass
 
             # selec loss depending on the ratio and ssl methods
-            loss = select_loss(sup_loss,ssl_losses,ratio, epoch, thresold )
+            loss = select_loss(sup_loss,ssl_losses,ratio, epoch, thresold, task_id)
 
             # backward
             loss.backward()
