@@ -32,7 +32,7 @@ def select_loss(sup_loss, ssl_losses, ratio, epoch, threshold, task_id):
         ssl_L = 0
         for ssl_loss in ssl_losses:
             ssl_L += ssl_loss
-        loss = 0*sup_loss + ssl_L
+        loss = sup_loss + ((5.0-task_id)/5.0)*ssl_L
     else:
         loss = sup_loss
 

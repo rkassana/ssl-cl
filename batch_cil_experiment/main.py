@@ -12,8 +12,8 @@ from models.multi_head_classifier import Multi_head
 import os, wandb
 from models.autoencoder import AE
 
-NUMPY_SEED = 24
-PYTORCH_SEED = 42
+NUMPY_SEED = 26
+PYTORCH_SEED = 44
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='cil tasks')
@@ -57,10 +57,11 @@ if __name__ == "__main__":
     #wandb init
     os.environ["WANDB_MODE"] = "dryrun"
     run = wandb.init(
-        project="ssl-cl",
+        project="ssl-cl-bis",
         entity="ssl-cl",
         dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."),
-        name = name_run
+        name = name_run,
+        group='baseline-cifar-10'
     )
     wandb.run.summary["tensorflow_seed"] = PYTORCH_SEED
     wandb.run.summary["numpy_seed"] = NUMPY_SEED
